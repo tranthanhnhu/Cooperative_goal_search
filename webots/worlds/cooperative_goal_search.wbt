@@ -1,0 +1,258 @@
+#VRML_SIM R2025a utf8
+# Layout matches src/env.py: 300×300 paper coords → X_w = x*0.01-1.5, Z_w = y*0.01-1.5
+
+WorldInfo {
+  basicTimeStep 32
+}
+
+Viewpoint {
+  orientation 1 0 0 -1.2
+  position 0 4.2 0
+  description "Top-down cooperative goal search"
+}
+
+DirectionalLight {
+  direction -0.35 -1 -0.25
+  intensity 1.0
+}
+
+PointLight {
+  attenuation 1 0 0
+  intensity 0.35
+  location 0 2.5 0
+}
+
+Background {
+  skyColor [
+    0.78 0.82 0.9
+  ]
+}
+
+# FLOOR 3×3 m (paper 300×300)
+Transform {
+  translation 0 0 0
+  children [
+    Shape {
+      appearance Appearance {
+        material Material { diffuseColor 0.88 0.88 0.88 }
+      }
+      geometry Box { size 3 0.02 3 }
+    }
+  ]
+}
+
+# Outer boundary walls (arena edge)
+Transform {
+  translation 0 0.15 -1.5
+  children [
+    Shape {
+      appearance Appearance { material Material { diffuseColor 0.22 0.22 0.22 } }
+      geometry Box { size 3 0.3 0.05 }
+    }
+  ]
+}
+Transform {
+  translation 0 0.15 1.5
+  children [
+    Shape {
+      appearance Appearance { material Material { diffuseColor 0.22 0.22 0.22 } }
+      geometry Box { size 3 0.3 0.05 }
+    }
+  ]
+}
+Transform {
+  translation -1.5 0.15 0
+  children [
+    Shape {
+      appearance Appearance { material Material { diffuseColor 0.22 0.22 0.22 } }
+      geometry Box { size 0.05 0.3 3 }
+    }
+  ]
+}
+Transform {
+  translation 1.5 0.15 0
+  children [
+    Shape {
+      appearance Appearance { material Material { diffuseColor 0.22 0.22 0.22 } }
+      geometry Box { size 0.05 0.3 3 }
+    }
+  ]
+}
+
+# Goal region (145–155, 270–280) → center (0, 1.25) in XZ
+Transform {
+  translation 0 0.08 1.25
+  children [
+    Shape {
+      appearance Appearance { material Material { diffuseColor 1 0.15 0.1 } }
+      geometry Box { size 0.1 0.12 0.1 }
+    }
+  ]
+}
+
+# Left vertical wall (97.5–102.5, 35–265)
+Transform {
+  translation -0.5 0.15 0
+  children [
+    Shape {
+      appearance Appearance { material Material { diffuseColor 0.05 0.05 0.05 } }
+      geometry Box { size 0.05 0.3 2.3 }
+    }
+  ]
+}
+
+# Right lower wall (197.5–202.5, 0–135)
+Transform {
+  translation 0.5 0.15 -0.825
+  children [
+    Shape {
+      appearance Appearance { material Material { diffuseColor 0.05 0.05 0.05 } }
+      geometry Box { size 0.05 0.3 1.35 }
+    }
+  ]
+}
+
+# Right upper wall (197.5–202.5, 205–275)
+Transform {
+  translation 0.5 0.15 0.9
+  children [
+    Shape {
+      appearance Appearance { material Material { diffuseColor 0.05 0.05 0.05 } }
+      geometry Box { size 0.05 0.3 0.7 }
+    }
+  ]
+}
+
+# Middle obstacle (135–165, 160–190)
+Transform {
+  translation 0 0.15 0.25
+  children [
+    Shape {
+      appearance Appearance { material Material { diffuseColor 0.05 0.05 0.05 } }
+      geometry Box { size 0.3 0.3 0.3 }
+    }
+  ]
+}
+
+# R1 start (25, 25) → (-1.25, -1.25)
+Robot {
+  name "R1"
+  translation -1.25 0.05 -1.25
+  controller "cooperative_goal_search"
+  children [
+    GPS { name "gps" }
+    Compass { name "compass" }
+    Shape {
+      appearance Appearance { material Material { diffuseColor 0 1 0 } }
+      geometry Cylinder { radius 0.05 height 0.04 }
+    }
+    HingeJoint {
+      device [ RotationalMotor { name "left wheel motor" } ]
+      endPoint Solid {
+        name "left_R1"
+        translation -0.05 0 0
+        children [
+          Shape {
+            appearance Appearance { material Material { diffuseColor 0.1 0.1 0.1 } }
+            geometry Cylinder { radius 0.02 height 0.01 }
+          }
+        ]
+      }
+    }
+    HingeJoint {
+      device [ RotationalMotor { name "right wheel motor" } ]
+      endPoint Solid {
+        name "right_R1"
+        translation 0.05 0 0
+        children [
+          Shape {
+            appearance Appearance { material Material { diffuseColor 0.1 0.1 0.1 } }
+            geometry Cylinder { radius 0.02 height 0.01 }
+          }
+        ]
+      }
+    }
+  ]
+}
+
+# R2 start (150, 25) → (0, -1.25)
+Robot {
+  name "R2"
+  translation 0 0.05 -1.25
+  controller "cooperative_goal_search"
+  children [
+    GPS { name "gps" }
+    Compass { name "compass" }
+    Shape {
+      appearance Appearance { material Material { diffuseColor 0 0.5 1 } }
+      geometry Cylinder { radius 0.05 height 0.04 }
+    }
+    HingeJoint {
+      device [ RotationalMotor { name "left wheel motor" } ]
+      endPoint Solid {
+        name "left_R2"
+        translation -0.05 0 0
+        children [
+          Shape {
+            appearance Appearance { material Material { diffuseColor 0.1 0.1 0.1 } }
+            geometry Cylinder { radius 0.02 height 0.01 }
+          }
+        ]
+      }
+    }
+    HingeJoint {
+      device [ RotationalMotor { name "right wheel motor" } ]
+      endPoint Solid {
+        name "right_R2"
+        translation 0.05 0 0
+        children [
+          Shape {
+            appearance Appearance { material Material { diffuseColor 0.1 0.1 0.1 } }
+            geometry Cylinder { radius 0.02 height 0.01 }
+          }
+        ]
+      }
+    }
+  ]
+}
+
+# R3 start (275, 25) → (1.25, -1.25)
+Robot {
+  name "R3"
+  translation 1.25 0.05 -1.25
+  controller "cooperative_goal_search"
+  children [
+    GPS { name "gps" }
+    Compass { name "compass" }
+    Shape {
+      appearance Appearance { material Material { diffuseColor 1 0.6 0 } }
+      geometry Cylinder { radius 0.05 height 0.04 }
+    }
+    HingeJoint {
+      device [ RotationalMotor { name "left wheel motor" } ]
+      endPoint Solid {
+        name "left_R3"
+        translation -0.05 0 0
+        children [
+          Shape {
+            appearance Appearance { material Material { diffuseColor 0.1 0.1 0.1 } }
+            geometry Cylinder { radius 0.02 height 0.01 }
+          }
+        ]
+      }
+    }
+    HingeJoint {
+      device [ RotationalMotor { name "right wheel motor" } ]
+      endPoint Solid {
+        name "right_R3"
+        translation 0.05 0 0
+        children [
+          Shape {
+            appearance Appearance { material Material { diffuseColor 0.1 0.1 0.1 } }
+            geometry Cylinder { radius 0.02 height 0.01 }
+          }
+        ]
+      }
+    }
+  ]
+}
