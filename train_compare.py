@@ -12,7 +12,12 @@ from src.plotting import plot_robot_curves
 from src.training import ExperimentRunner
 
 
-def _print_run_banner(env_cfg: EnvConfig, train_cfg: TrainConfig, save_dir: str) -> None:
+def _print_run_banner(
+    env_cfg: EnvConfig,
+    train_cfg: TrainConfig,
+    save_dir: str,
+    progress_every: int,
+) -> None:
     print("=" * 60)
     print("Cooperative Goal Search / train_compare")
     print("=" * 60)
@@ -24,7 +29,15 @@ def _print_run_banner(env_cfg: EnvConfig, train_cfg: TrainConfig, save_dir: str)
     print(f"  noise_std:    {env_cfg.noise_std}")
     print(f"  save_dir:     {save_dir}")
     print(f"  max_steps/ep: {env_cfg.max_steps_per_episode}")
+    _print_progress_setting(progress_every)
     print("-" * 60)
+
+
+def _print_progress_setting(progress_every: int) -> None:
+    if progress_every <= 0:
+        print("  progress:     off (no per-episode updates)")
+    else:
+        print(f"  progress:     every {progress_every} episodes")
 
 
 def _summarize_best_paths(best_paths: dict) -> None:
@@ -44,14 +57,26 @@ def main() -> None:
     parser.add_argument("--trials", type=int, default=40)
     parser.add_argument("--save-dir", type=str, default="results")
     parser.add_argument("--verbose", action="store_true", help="Per-trial goal rate and step stats during training")
+    parser.add_argument(
+        "--progress-every",
+        type=int,
+        default=20,
+        metavar="N",
+        help="Print training progress every N episodes per trial (0=disable)",
+    )
     args = parser.parse_args()
 
     t0 = time.perf_counter()
     env_cfg = EnvConfig()
     train_cfg = TrainConfig(episodes=args.episodes, trials=args.trials, save_dir=args.save_dir)
-    runner = ExperimentRunner(env_cfg, train_cfg, verbose=args.verbose)
+    runner = ExperimentRunner(
+        env_cfg,
+        train_cfg,
+        verbose=args.verbose,
+        progress_every=args.progress_every,
+    )
 
-    _print_run_banner(env_cfg, train_cfg, args.save_dir)
+    _print_run_banner(env_cfg, train_cfg, args.save_dir, args.progress_every)
     demo_env = CooperativeGoalSearchEnv(env_cfg, np.random.default_rng(0))
     print(demo_env.render_ascii_summary())
     print("-" * 60)

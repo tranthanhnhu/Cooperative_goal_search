@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Tuple
 import copy
 import json
 import os
+import time
 import numpy as np
 
 from .agent import CooperativeAgent
@@ -38,10 +39,17 @@ class ExperimentRunner:
 
     METHODS = ["dyna_no_sharing", "raw_sharing", "request_sharing", "proposed"]
 
-    def __init__(self, env_cfg: EnvConfig, train_cfg: TrainConfig, verbose: bool = False):
+    def __init__(
+        self,
+        env_cfg: EnvConfig,
+        train_cfg: TrainConfig,
+        verbose: bool = False,
+        progress_every: int = 20,
+    ):
         self.env_cfg = env_cfg
         self.train_cfg = train_cfg
         self.verbose = verbose
+        self.progress_every = max(0, int(progress_every))
         os.makedirs(train_cfg.save_dir, exist_ok=True)
 
     def _make_rng(self, seed_offset: int = 0) -> np.random.Generator:
@@ -111,6 +119,14 @@ class ExperimentRunner:
             steps_on_success: Dict[str, List[float]] = {"robot_1": [], "robot_2": [], "robot_3": []}
             no_goal = {"robot_1": 0, "robot_2": 0, "robot_3": 0}
 
+            trial_t0 = time.perf_counter()
+            if self.progress_every > 0:
+                print(
+                    f"    [{method}] trial {trial + 1}/{self.train_cfg.trials} "
+                    f"episodes 1..{self.train_cfg.episodes} ...",
+                    flush=True,
+                )
+
             for episode in range(self.train_cfg.episodes):
                 epsilon = self._epsilon_for_episode(episode)
                 for idx, agent in enumerate(agents):
@@ -126,6 +142,24 @@ class ExperimentRunner:
                     else:
                         no_goal[key] += 1
 
+                n_ep = episode + 1
+                if self.progress_every > 0 and n_ep % self.progress_every == 0:
+                    elapsed = time.perf_counter() - trial_t0
+                    g1 = successes["robot_1"] / n_ep
+                    g2 = successes["robot_2"] / n_ep
+                    g3 = successes["robot_3"] / n_ep
+                    m1 = float(np.mean(histories["robot_1"])) if histories["robot_1"] else 0.0
+                    m2 = float(np.mean(histories["robot_2"])) if histories["robot_2"] else 0.0
+                    m3 = float(np.mean(histories["robot_3"])) if histories["robot_3"] else 0.0
+                    print(
+                        f"    [{method}] trial {trial + 1}/{self.train_cfg.trials} "
+                        f"episode {n_ep}/{self.train_cfg.episodes} "
+                        f"({elapsed:.0f}s) "
+                        f"goal_rate R1={g1:.2f} R2={g2:.2f} R3={g3:.2f} "
+                        f"mean_steps R1={m1:.0f} R2={m2:.0f} R3={m3:.0f}",
+                        flush=True,
+                    )
+
             for robot_key in histories:
                 per_trial_histories[robot_key].append(histories[robot_key])
 
@@ -140,7 +174,14 @@ class ExperimentRunner:
                     ms = float(np.mean(sos)) if sos else float("nan")
                     parts.append(f"{rk[-1]}_steps_ok={ms:.1f}" if sos else f"{rk[-1]}_steps_ok=nan")
                     parts.append(f"{rk[-1]}_no_goal={no_goal[rk]/ep:.3f}")
-                print(" | ".join(parts))
+                print(" | ".join(parts), flush=True)
+
+            if self.progress_every > 0:
+                print(
+                    f"    [{method}] trial {trial + 1}/{self.train_cfg.trials} done in "
+                    f"{time.perf_counter() - trial_t0:.1f}s",
+                    flush=True,
+                )
 
         averaged = {
             robot_key: np.mean(np.array(trials_hist, dtype=float), axis=0).tolist()
@@ -160,6 +201,10 @@ class ExperimentRunner:
         best_steps: Dict[int, float] = {0: float("inf"), 1: float("inf"), 2: float("inf")}
         best_paths: Dict[int, List[List[float]]] = {0: [], 1: [], 2: []}
 
+        export_t0 = time.perf_counter()
+        if self.progress_every > 0:
+            print("    [webots_export] training proposed for path export ...", flush=True)
+
         for episode in range(self.train_cfg.episodes):
             epsilon = self._epsilon_for_episode(episode)
             for idx, agent in enumerate(agents):
@@ -171,6 +216,26 @@ class ExperimentRunner:
                     best_paths[idx] = copy.deepcopy(trajectory)
 
                 agent.planning_replay(agents, method)
+
+            n_ep = episode + 1
+            if self.progress_every > 0 and n_ep % self.progress_every == 0:
+                elapsed = time.perf_counter() - export_t0
+                bests = ", ".join(
+                    f"{['R1', 'R2', 'R3'][i]}="
+                    f"{int(best_steps[i]) if best_steps[i] < float('inf') else '-'}"
+                    for i in range(3)
+                )
+                print(
+                    f"    [webots_export] episode {n_ep}/{self.train_cfg.episodes} "
+                    f"({elapsed:.0f}s) best_steps [{bests}]",
+                    flush=True,
+                )
+
+        if self.progress_every > 0:
+            print(
+                f"    [webots_export] done in {time.perf_counter() - export_t0:.1f}s",
+                flush=True,
+            )
 
         names = ["R1", "R2", "R3"]
         out: Dict[str, List[List[float]]] = {names[i]: best_paths[i] for i in range(3)}
