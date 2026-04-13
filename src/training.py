@@ -108,6 +108,8 @@ class ExperimentRunner:
             agents = self._make_agents(rng)
             histories = {"robot_1": [], "robot_2": [], "robot_3": []}
             successes = {"robot_1": 0, "robot_2": 0, "robot_3": 0}
+            steps_on_success: Dict[str, List[float]] = {"robot_1": [], "robot_2": [], "robot_3": []}
+            no_goal = {"robot_1": 0, "robot_2": 0, "robot_3": 0}
 
             for episode in range(self.train_cfg.episodes):
                 epsilon = self._epsilon_for_episode(episode)
@@ -120,17 +122,25 @@ class ExperimentRunner:
                     histories[key].append(float(steps_taken))
                     if reached:
                         successes[key] += 1
+                        steps_on_success[key].append(float(steps_taken))
+                    else:
+                        no_goal[key] += 1
 
             for robot_key in histories:
                 per_trial_histories[robot_key].append(histories[robot_key])
 
             if self.verbose:
                 ep = self.train_cfg.episodes
-                print(
-                    f"  [{method}] trial {trial + 1}/{self.train_cfg.trials} "
-                    f"goal_rate R1={successes['robot_1']/ep:.3f} R2={successes['robot_2']/ep:.3f} "
-                    f"R3={successes['robot_3']/ep:.3f}"
-                )
+                parts = [
+                    f"  [{method}] trial {trial + 1}/{self.train_cfg.trials}",
+                    f"goal R1={successes['robot_1']/ep:.3f} R2={successes['robot_2']/ep:.3f} R3={successes['robot_3']/ep:.3f}",
+                ]
+                for rk in ("robot_1", "robot_2", "robot_3"):
+                    sos = steps_on_success[rk]
+                    ms = float(np.mean(sos)) if sos else float("nan")
+                    parts.append(f"{rk[-1]}_steps_ok={ms:.1f}" if sos else f"{rk[-1]}_steps_ok=nan")
+                    parts.append(f"{rk[-1]}_no_goal={no_goal[rk]/ep:.3f}")
+                print(" | ".join(parts))
 
         averaged = {
             robot_key: np.mean(np.array(trials_hist, dtype=float), axis=0).tolist()

@@ -26,6 +26,14 @@ class EnvConfig:
     max_steps_per_episode: int = 2000
 
     wall_thickness: float = 5.0
+    # Fig. 8: vertical dividers at x=100 (Area1|2) and x=200 (Area2|3)
+    wall_x_left: float = 100.0
+    wall_x_right: float = 200.0
+    # Only bottom passage between Area 1 and 2: wall from this y up to height (no top gap)
+    left_wall_y_start: float = 40.0
+    # Only one passage between Area 2 and 3 (middle/upper): gap (y0,y1), walls below and above
+    right_wall_gap_y0: float = 130.0
+    right_wall_gap_y1: float = 210.0
 
 
 @dataclass

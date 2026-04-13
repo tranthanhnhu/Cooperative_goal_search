@@ -39,13 +39,23 @@ class CooperativeGoalSearchEnv:
         self.obstacles = self._build_obstacles()
 
     def _build_obstacles(self) -> List[Rect]:
+        """Fig. 8: (1|2) opening only at bottom; (2|3) opening only in middle band."""
         t = self.cfg.wall_thickness
-        # Fig. 8: left x≈100; right x≈200 lower/upper; middle ~ (150,175)
-        left = _wall_rect(100.0, 35.0, 265.0, t)
-        right_lo = _wall_rect(200.0, 0.0, 135.0, t)
-        right_hi = _wall_rect(200.0, 205.0, 275.0, t)
+        xl = self.cfg.wall_x_left
+        xr = self.cfg.wall_x_right
+        h = self.cfg.height
+
+        # Area 1 | Area 2: single passage at bottom y in [0, left_wall_y_start)
+        left_upper = _wall_rect(xl, self.cfg.left_wall_y_start, h, t)
+
+        gy0 = self.cfg.right_wall_gap_y0
+        gy1 = self.cfg.right_wall_gap_y1
+        # Area 2 | Area 3: block below gap, block above gap; passage y in (gy0, gy1)
+        right_lo = _wall_rect(xr, 0.0, gy0, t)
+        right_hi = _wall_rect(xr, gy1, h, t)
+
         mid = (135.0, 160.0, 165.0, 190.0)
-        return [left, right_lo, right_hi, mid]
+        return [left_upper, right_lo, right_hi, mid]
 
     @staticmethod
     def _in_rect(point: np.ndarray, rect: Rect) -> bool:
@@ -126,7 +136,7 @@ class CooperativeGoalSearchEnv:
 
     def render_ascii_summary(self) -> str:
         return (
-            "World 300×300, Fig. 8 obstacle layout.\n"
+            "World 300x300, Fig. 8 (bottom gap 1|2, middle gap 2|3).\n"
             f"Goal: {self.cfg.goal_rect}\n"
             f"Starts: {self.cfg.start_r1}, {self.cfg.start_r2}, {self.cfg.start_r3}\n"
             f"Obstacles: {self.obstacles}"
